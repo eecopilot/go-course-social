@@ -10,13 +10,21 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+type config struct {
+	addr string
+	db   dbConfig
+}
+
+type dbConfig struct {
+	addr         string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  string
+}
+
 type application struct {
 	config config
 	store  store.Storage
-}
-
-type config struct {
-	addr string
 }
 
 func (app *application) mount() *chi.Mux {
