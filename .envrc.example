@@ -1,0 +1,5 @@
+export ADDR=:8080
+export DB_ADDR=localhost:5432
+export DB_MAX_OPEN_CONNS=20
+export DB_MAX_IDLE_CONNS=20
+export DB_MAX_IDLE_TIME=30s
