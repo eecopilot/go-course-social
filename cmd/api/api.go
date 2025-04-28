@@ -11,8 +11,10 @@ import (
 )
 
 type config struct {
-	addr string
-	db   dbConfig
+	addr    string
+	env     string
+	version string
+	db      dbConfig
 }
 
 type dbConfig struct {
@@ -44,6 +46,14 @@ func (app *application) mount() *chi.Mux {
 	// Group
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+
+		r.Route("/posts", func(r chi.Router) {
+			r.Post("/", app.createPostHandler)
+			r.Route("/{postId}", func(r chi.Router) {
+				r.Get("/", app.getPostHandler)
+				// TODO: Patch and Delete
+			})
+		})
 	})
 
 	return r

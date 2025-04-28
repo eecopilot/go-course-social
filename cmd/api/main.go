@@ -8,9 +8,13 @@ import (
 	"github.com/eecopilot/go-course-social/internal/store"
 )
 
+const version = "1.0.0"
+
 func main() {
 	cfg := config{
-		addr: env.GetString("ADDR", ":8080"),
+		addr:    env.GetString("ADDR", ":8080"),
+		version: version,
+		env:     env.GetString("ENV", "development"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "localhost:5432"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 20),
