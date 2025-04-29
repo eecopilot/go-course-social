@@ -37,8 +37,10 @@ func main() {
 		store:  store,
 	}
 
+	// 获取路由器
 	mux := app.mount()
 
+	// 启动HTTP服务器
 	if err := app.run(mux); err != nil {
 		panic(err)
 	}
