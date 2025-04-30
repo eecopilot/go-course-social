@@ -20,6 +20,7 @@ type Post struct {
 	Content   string    `json:"content"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
+	Version   int       `json:"version"`
 	Comments  []Comment `json:"comments"`
 }
 
@@ -51,7 +52,7 @@ func (p *PostgresPosts) Create(ctx context.Context, post *Post) error {
 
 func (p *PostgresPosts) GetByID(ctx context.Context, postId string) (*Post, error) {
 	query := `
-		SELECT id, user_id, title, tags, content, created_at, updated_at
+		SELECT id, user_id, title, tags, content, created_at, updated_at, version
 		FROM posts
 		WHERE id = $1
 	`
@@ -68,6 +69,7 @@ func (p *PostgresPosts) GetByID(ctx context.Context, postId string) (*Post, erro
 		&post.Content,        // 将 content 列的值赋给 post.Content
 		&post.CreatedAt,      // 将 created_at 列的值赋给 post.CreatedAt
 		&post.UpdatedAt,      // 将 updated_at 列的值赋给 post.UpdatedAt
+		&post.Version,        // 将 version 列的值赋给 post.Version
 	)
 	if err != nil {
 		switch {
@@ -80,13 +82,27 @@ func (p *PostgresPosts) GetByID(ctx context.Context, postId string) (*Post, erro
 	return &post, nil
 }
 
+// 加入version字段，防止并发更新
 func (p *PostgresPosts) Update(ctx context.Context, payload *Post) error {
 	query := `
-		UPDATE posts SET title = $1, content = $2 WHERE id = $3
+		UPDATE posts SET title = $1, content = $2, version = version + 1 WHERE id = $3 AND version = $4 RETURNING version
 	`
-	_, err := p.db.ExecContext(ctx, query, payload.Title, payload.Content, payload.ID)
+	// QueryRowContext 方法执行一个预编译的 SQL 语句，并返回一个 sql.Row 对象
+	// 如果查询没有返回行或发生其他错误，err 将不为 nil
+
+	// Scan方法用于将查询结果的列值扫描到指定的变量中
+	// 这里执行UPDATE语句后，使用RETURNING子句返回了更新后的version值
+	// Scan将这个返回的version值赋给payload.Version变量
+	// 如果没有找到匹配的行(版本不匹配或ID不存在)，Scan会返回sql.ErrNoRows错误
+	err := p.db.QueryRowContext(ctx, query, payload.Title, payload.Content, payload.ID, payload.Version).Scan(&payload.Version)
+	// _, err := p.db.ExecContext(ctx, query, payload.Title, payload.Content, payload.ID, payload.Version)
 	if err != nil {
-		return err
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrNotFound
+		default:
+			return err
+		}
 	}
 	return nil
 }
