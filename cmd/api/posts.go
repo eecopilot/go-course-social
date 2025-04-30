@@ -86,7 +86,10 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 	post := getPostFromContext(r.Context())
 
 	var payload UpdatePostPayload
-	// read the payload
+	// readJSON 函数从 HTTP 请求体中读取 JSON 数据并解析到 payload 结构体中
+	// 它会自动将请求体中的 JSON 字段映射到 UpdatePostPayload 结构体的对应字段
+	// 例如，如果请求体是 {"title": "新标题", "content": "新内容"}
+	// 则 payload.Title 将指向 "新标题"，payload.Content 将指向 "新内容"
 	if err := readJSON(w, r, &payload); err != nil {
 		app.badRequestResponse(w, r, err)
 		return
