@@ -13,13 +13,14 @@ var (
 )
 
 type Post struct {
-	ID        int64    `json:"id"`
-	UserID    int64    `json:"user_id"`
-	Title     string   `json:"title"`
-	Tags      []string `json:"tags"`
-	Content   string   `json:"content"`
-	CreatedAt string   `json:"created_at"`
-	UpdatedAt string   `json:"updated_at"`
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Title     string    `json:"title"`
+	Tags      []string  `json:"tags"`
+	Content   string    `json:"content"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+	Comments  []Comment `json:"comments"`
 }
 
 type PostgresPosts struct {
@@ -32,6 +33,7 @@ func (p *PostgresPosts) Create(ctx context.Context, post *Post) error {
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 	`
+	// 查询数据库
 	err := p.db.QueryRowContext(
 		ctx,
 		query,
@@ -75,6 +77,37 @@ func (p *PostgresPosts) GetByID(ctx context.Context, postId string) (*Post, erro
 			return nil, err
 		}
 	}
-
 	return &post, nil
+}
+
+func (p *PostgresPosts) Update(ctx context.Context, payload *Post) error {
+	query := `
+		UPDATE posts SET title = $1, content = $2 WHERE id = $3
+	`
+	_, err := p.db.ExecContext(ctx, query, payload.Title, payload.Content, payload.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PostgresPosts) Delete(ctx context.Context, postId string) error {
+	query := `
+		DELETE FROM posts WHERE id = $1
+	`
+	// ExecContext 方法执行一个预编译的 SQL 语句，并返回一个 sql.Result 对象
+	res, err := p.db.ExecContext(ctx, query, postId)
+	if err != nil {
+		return err
+	}
+	// 确定受影响的行数
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	// 如果受影响的行数为 0，则返回 ErrNotFound
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

@@ -33,3 +33,7 @@ migrate create -seq -ext sql -dir ./cmd/migrate/migrations create_users
 ```sql
 migrate -path=./cmd/migrate/migrations -database="$DATADASE_URL" up
 ```
+
+## validator
+
+go get github.com/go-playground/validator/v10
