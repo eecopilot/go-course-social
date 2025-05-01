@@ -4,12 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/lib/pq"
 )
 
 var (
-	ErrNotFound = errors.New("resource not found")
+	ErrNotFound  = errors.New("resource not found")
+	QueryTimeout = 5 * time.Second
 )
 
 type Post struct {
@@ -34,6 +36,8 @@ func (p *PostgresPosts) Create(ctx context.Context, post *Post) error {
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at, updated_at
 	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
 	// 查询数据库
 	err := p.db.QueryRowContext(
 		ctx,
@@ -56,6 +60,8 @@ func (p *PostgresPosts) GetByID(ctx context.Context, postId string) (*Post, erro
 		FROM posts
 		WHERE id = $1
 	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
 	var post Post
 	// Scan 方法将查询结果的各列值扫描到对应的变量中
 	// 这里将查询返回的 id, user_id, title, tags, content, created_at, updated_at 列的值
@@ -111,6 +117,8 @@ func (p *PostgresPosts) Delete(ctx context.Context, postId string) error {
 	query := `
 		DELETE FROM posts WHERE id = $1
 	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
 	// ExecContext 方法执行一个预编译的 SQL 语句，并返回一个 sql.Result 对象
 	res, err := p.db.ExecContext(ctx, query, postId)
 	if err != nil {

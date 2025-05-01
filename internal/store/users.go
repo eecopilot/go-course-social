@@ -23,6 +23,8 @@ func (p *PostgresUsers) Create(ctx context.Context, user *User) error {
 		VALUES ($1, $2, $3)
 		RETURNING id, created_at
 	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
 	err := p.db.QueryRowContext(
 		ctx, query,
 		user.Username,
