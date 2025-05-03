@@ -37,3 +37,9 @@ migrate -path=./cmd/migrate/migrations -database="$DATADASE_URL" up
 ## validator
 
 go get github.com/go-playground/validator/v10
+
+## seed
+
+```
+go run cmd/migrate/seed/main.go
+```
