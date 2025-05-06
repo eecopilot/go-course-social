@@ -16,7 +16,7 @@ func main() {
 		version: version,
 		env:     env.GetString("ENV", "development"),
 		db: dbConfig{
-			addr:         env.GetString("DB_ADDR", "localhost:5432"),
+			addr:         env.GetString("DB_ADDR", "postgres-db:5432"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 20),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 20),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "20s"),

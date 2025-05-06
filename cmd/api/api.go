@@ -58,6 +58,15 @@ func (app *application) mount() *chi.Mux {
 				r.Delete("/", app.deletePostHandler)
 			})
 		})
+
+		// users
+		r.Route("/users", func(r chi.Router) {
+			// r.Post("/", app.createUserHandler)
+			r.Route("/{userId}", func(r chi.Router) {
+				// r.Use(app.usersContextMiddleware)
+				r.Get("/", app.getUserHandler)
+			})
+		})
 	})
 
 	return r

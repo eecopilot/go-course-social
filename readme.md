@@ -34,6 +34,12 @@ migrate create -seq -ext sql -dir ./cmd/migrate/migrations create_users
 migrate -path=./cmd/migrate/migrations -database="$DATADASE_URL" up
 ```
 
+本地
+
+```
+migrate -path=./cmd/migrate/migrations -database="postgres://admin:adminpassword@localhost/social?sslmode=disable" up
+```
+
 ## validator
 
 go get github.com/go-playground/validator/v10
@@ -42,4 +48,10 @@ go get github.com/go-playground/validator/v10
 
 ```
 go run cmd/migrate/seed/main.go
+```
+
+## docker db
+
+```
+docker compose up --build
 ```
