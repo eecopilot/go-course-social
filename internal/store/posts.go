@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrNotFound  = errors.New("resource not found")
+	ErrDuplicate = errors.New("duplicate resource")
 	QueryTimeout = 5 * time.Second
 )
 

@@ -61,7 +61,9 @@ func (s *CommentsStores) Create(ctx context.Context, comment *Comment) error {
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
 	defer cancel()
 
-	// 这里PostID和UserID的顺序不能颠倒，要跟query中的顺序一致
+	// 这里PostID和UserID的顺序不能颠倒，要跟query中的顺序一致 post_id, user_id, content
+	// Scan是做什么的
+	// Scan将查询结果的列映射到结构体的字段
 	err := s.db.QueryRowContext(
 		ctx,
 		query,

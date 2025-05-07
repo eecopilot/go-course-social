@@ -63,8 +63,12 @@ func (app *application) mount() *chi.Mux {
 		r.Route("/users", func(r chi.Router) {
 			// r.Post("/", app.createUserHandler)
 			r.Route("/{userId}", func(r chi.Router) {
-				// r.Use(app.usersContextMiddleware)
+				r.Use(app.userContextMiddleware)
 				r.Get("/", app.getUserHandler)
+
+				// follower
+				r.Put("/follow", app.followUserHandler)
+				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 		})
 	})
