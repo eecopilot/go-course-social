@@ -145,21 +145,46 @@ func (p *PostgresPosts) Delete(ctx context.Context, postId string) error {
 }
 
 func (p *PostgresPosts) GetUserFeed(ctx context.Context, userID int64, fq PaginatedFeedQuery) ([]PostWithMetadata, error) {
+	// 处理时间参数
+	since := fq.Since
+	until := fq.Until
+	timeQuery := ""
+	// 如果since和until都为空，则不传时间参数，如果since为空，则不传since参数，如果until为空，则不传until参数
+	if since != "" && until != "" {
+		timeQuery = "AND p.created_at BETWEEN $6 AND $7"
+	} else if since != "" && until == "" {
+		timeQuery = "AND p.created_at >= $6"
+	} else if since == "" && until != "" {
+		timeQuery = "AND p.created_at <= $7"
+	}
+	// fq.Sort的值是SQL语句的结构或片段，占位符只能被数据库驱动程序替换为实际的数值、
+	// 字符串等参数值，而不能用来动态插入 SQL 语句的语法部分
 	query := `
 		SELECT p.id, p.user_id, p.title, p.tags, p.content, p.created_at, p.version, COUNT(c.id) as comments_count, u.username
 		FROM posts p
 		LEFT JOIN comments c ON p.id = c.post_id
 		LEFT JOIN users u ON p.user_id = u.id
 		JOIN followers f ON p.user_id = f.follower_id OR p.user_id = $1
-		WHERE f.user_id = $1 OR p.user_id = $1
+		WHERE f.user_id = $1 AND
+		(p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%') AND
+		(p.tags @> $5 OR $5 = '{}') ` + timeQuery + `
 		GROUP BY p.id, u.username
-		ORDER BY p.created_at ` + fq.Sort +`
-		LIMIT $3 OFFSET $4
+		ORDER BY p.created_at ` + fq.Sort + `
+		LIMIT $2 OFFSET $3
 	`
+
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
 	defer cancel()
-
-	rows, err := p.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
+	// $1 是用户ID, $2 是限制, $3 是偏移量, $4 是搜索字符串, $5 是标签
+	rows, err := p.db.QueryContext(
+		ctx,
+		query,
+		userID,
+		fq.Limit,
+		fq.Offset,
+		fq.Search,
+		pq.Array(fq.Tags),
+	)
 	if err != nil {
 		return nil, err
 	}

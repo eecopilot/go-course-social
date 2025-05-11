@@ -10,9 +10,13 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 	// user := getUserFromContext(r)
 	// log.Println(user)
 	fq := store.PaginatedFeedQuery{
-		Limit: 20,
+		Limit:  2,
 		Offset: 0,
-		Sort: "desc",
+		Sort:   "desc",
+		Tags:   []string{},
+		Search: "",
+		Since:  "",
+		Until:  "",
 	}
 	fq, err := fq.Parse(r)
 	if err != nil {
