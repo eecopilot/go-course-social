@@ -70,6 +70,13 @@ func (app *application) mount() *chi.Mux {
 				r.Put("/follow", app.followUserHandler)
 				r.Put("/unfollow", app.unfollowUserHandler)
 			})
+
+			// feed
+			// Group 可以给这个group设置中间件
+			r.Group(func(r chi.Router) {
+				// r.Use(app.userContextMiddleware)
+				r.Get("/feed", app.getUserFeedHandler)
+			})
 		})
 	})
 

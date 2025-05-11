@@ -25,6 +25,13 @@ type Post struct {
 	UpdatedAt string    `json:"updated_at"`
 	Version   int       `json:"version"`
 	Comments  []Comment `json:"comments"`
+	User      User      `json:"user"`
+}
+
+// 在Post的基础上添加CommentsCount字段
+type PostWithMetadata struct {
+	Post
+	CommentCount int `json:"comments_count"`
 }
 
 type PostgresPosts struct {
@@ -135,4 +142,37 @@ func (p *PostgresPosts) Delete(ctx context.Context, postId string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (p *PostgresPosts) GetUserFeed(ctx context.Context, userID int64, fq PaginatedFeedQuery) ([]PostWithMetadata, error) {
+	query := `
+		SELECT p.id, p.user_id, p.title, p.tags, p.content, p.created_at, p.version, COUNT(c.id) as comments_count, u.username
+		FROM posts p
+		LEFT JOIN comments c ON p.id = c.post_id
+		LEFT JOIN users u ON p.user_id = u.id
+		JOIN followers f ON p.user_id = f.follower_id OR p.user_id = $1
+		WHERE f.user_id = $1 OR p.user_id = $1
+		GROUP BY p.id, u.username
+		ORDER BY p.created_at ` + fq.Sort +`
+		LIMIT $3 OFFSET $4
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
+
+	rows, err := p.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
+	if err != nil {
+		return nil, err
+	}
+	// 关闭rows
+	defer rows.Close()
+
+	feeds := []PostWithMetadata{}
+	for rows.Next() {
+		var p PostWithMetadata
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Title, pq.Array(&p.Tags), &p.Content, &p.CreatedAt, &p.Version, &p.CommentCount, &p.User.Username); err != nil {
+			return nil, err
+		}
+		feeds = append(feeds, p)
+	}
+	return feeds, nil
 }
