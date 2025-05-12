@@ -1,11 +1,10 @@
 package main
 
 import (
-	"log"
-
 	"github.com/eecopilot/go-course-social/internal/db"
 	"github.com/eecopilot/go-course-social/internal/env"
 	"github.com/eecopilot/go-course-social/internal/store"
+	"go.uber.org/zap"
 )
 
 const version = "1.0.0"
@@ -41,19 +40,24 @@ func main() {
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "20s"),
 		},
 	}
+	// logger
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
 	// db connection
 	db, err := db.NewDB(cfg.db.addr, cfg.db.maxOpenConns, cfg.db.maxIdleConns, cfg.db.maxIdleTime)
 	if err != nil {
-		log.Panicf("failed to connect to db: %v", err)
+		logger.Fatal("failed to connect to db: %v", err)
 	}
 
 	defer db.Close()
-	log.Println("connected to db")
+	logger.Info("connected to db")
 	// store connection
 	store := store.NewStorage(db)
 	app := &application{
 		config: cfg,
 		store:  store,
+		logger: logger,
 	}
 
 	// 获取路由器
@@ -61,6 +65,6 @@ func main() {
 
 	// 启动HTTP服务器
 	if err := app.run(mux); err != nil {
-		panic(err)
+		logger.Fatal("failed to start server: %v", err)
 	}
 }

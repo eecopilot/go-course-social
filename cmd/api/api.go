@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
+	"go.uber.org/zap"
 )
 
 type config struct {
@@ -31,6 +31,7 @@ type dbConfig struct {
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 func (app *application) mount() *chi.Mux {
@@ -107,6 +108,6 @@ func (app *application) run(mux *chi.Mux) error {
 		ReadTimeout:  RTime, // max time to read request from the client
 		IdleTimeout:  ITime, // max time for connections using TCP Keep-Alive
 	}
-	log.Printf("Starting server on http://localhost%s", app.config.addr)
+	app.logger.Infow("Server has started", "addr", app.config.addr, "env", app.config.env)
 	return srv.ListenAndServe()
 }
