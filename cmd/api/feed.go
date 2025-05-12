@@ -15,7 +15,7 @@ import (
 //	@Produce		json
 //	@Param			limit	query		int		false	"每页条数"	default(2)
 //	@Param			offset	query		int		false	"偏移量"	default(0)
-//	@Param			sort	query		string	false	"排序方式"	default("desc")
+//	@Param			sort	query		string	false	"排序方式"	default(desc)
 //	@Param			tags	query		string	false	"标签"
 //	@Param			search	query		string	false	"搜索"
 //	@Param			since	query		string	false	"开始时间"

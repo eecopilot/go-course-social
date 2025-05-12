@@ -349,7 +349,7 @@ paths:
         in: query
         name: offset
         type: integer
-      - default: '"desc"'
+      - default: desc
         description: 排序方式
         in: query
         name: sort

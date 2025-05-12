@@ -275,7 +275,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "default": "\"desc\"",
+                        "default": "desc",
                         "description": "排序方式",
                         "name": "sort",
                         "in": "query"
