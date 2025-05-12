@@ -1,0 +1,399 @@
+basePath: /v1
+definitions:
+  main.UpdatePostPayload:
+    properties:
+      content:
+        maxLength: 1000
+        type: string
+      title:
+        maxLength: 100
+        type: string
+    type: object
+  store.Comment:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      post_id:
+        type: integer
+      user:
+        $ref: '#/definitions/store.User'
+      user_id:
+        type: integer
+    type: object
+  store.Post:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/store.Comment'
+        type: array
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/store.User'
+      user_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  store.PostWithMetadata:
+    properties:
+      comments:
+        items:
+          $ref: '#/definitions/store.Comment'
+        type: array
+      comments_count:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/store.User'
+      user_id:
+        type: integer
+      version:
+        type: integer
+    type: object
+  store.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Social API.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Social API
+paths:
+  /posts:
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的帖子
+      parameters:
+      - description: 帖子标题
+        in: body
+        name: title
+        required: true
+        schema:
+          type: string
+      - description: 帖子内容
+        in: body
+        name: content
+        required: true
+        schema:
+          type: string
+      - description: 帖子标签
+        in: body
+        name: tags
+        schema:
+          items:
+            type: string
+          type: array
+      - description: 用户ID
+        in: body
+        name: userID
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/store.Post'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 创建帖子
+      tags:
+      - posts
+  /posts/{postID}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除帖子
+      parameters:
+      - description: 帖子ID
+        in: path
+        name: postID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 删除成功
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 删除帖子
+      tags:
+      - posts
+    get:
+      consumes:
+      - application/json
+      description: 获取帖子详情
+      parameters:
+      - description: 帖子ID
+        in: path
+        name: postID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.Post'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 获取帖子
+      tags:
+      - posts
+    put:
+      consumes:
+      - application/json
+      description: 更新帖子
+      parameters:
+      - description: 帖子ID
+        in: path
+        name: postID
+        required: true
+        type: integer
+      - description: 更新信息
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.UpdatePostPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.Post'
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 更新帖子
+      tags:
+      - posts
+  /users/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 通过用户ID获取用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/store.User'
+        "400":
+          description: Bad Request
+          schema: {}
+        "404":
+          description: Not Found
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户信息
+      tags:
+      - users
+  /users/{userID}/follow:
+    put:
+      consumes:
+      - application/json
+      description: 通过用户ID关注用户
+      parameters:
+      - description: 用户ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 关注成功
+          schema:
+            type: string
+        "400":
+          description: 请求错误
+          schema: {}
+        "404":
+          description: 用户不存在
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 关注用户
+      tags:
+      - users
+  /users/{userID}/unfollow:
+    put:
+      consumes:
+      - application/json
+      description: 通过用户ID取消关注用户
+      parameters:
+      - description: 用户ID
+        in: path
+        name: userID
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: 取消关注成功
+          schema:
+            type: string
+        "400":
+          description: 请求错误
+          schema: {}
+        "404":
+          description: 用户不存在
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 取消关注用户
+      tags:
+      - users
+  /users/feed:
+    get:
+      consumes:
+      - application/json
+      description: 获取用户动态
+      parameters:
+      - default: 2
+        description: 每页条数
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: 偏移量
+        in: query
+        name: offset
+        type: integer
+      - default: '"desc"'
+        description: 排序方式
+        in: query
+        name: sort
+        type: string
+      - description: 标签
+        in: query
+        name: tags
+        type: string
+      - description: 搜索
+        in: query
+        name: search
+        type: string
+      - description: 开始时间
+        in: query
+        name: since
+        type: string
+      - description: 结束时间
+        in: query
+        name: until
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/store.PostWithMetadata'
+            type: array
+        "400":
+          description: Bad Request
+          schema: {}
+        "500":
+          description: Internal Server Error
+          schema: {}
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户动态
+      tags:
+      - feed
+securityDefinitions:
+  ApiKeyAuth:
+    description: 请在请求头中添加Authorization字段，值为Bearer + 空格 + token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

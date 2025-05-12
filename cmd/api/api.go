@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/eecopilot/go-course-social/docs" // This is required to generate swagger docs
 	"github.com/eecopilot/go-course-social/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 type config struct {
@@ -15,6 +18,7 @@ type config struct {
 	env     string
 	version string
 	db      dbConfig
+	apiUrl  string
 }
 
 type dbConfig struct {
@@ -42,10 +46,13 @@ func (app *application) mount() *chi.Mux {
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
-
+	docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 	// Group
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+
+		// docs 文档
+		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)
@@ -89,6 +96,10 @@ func (app *application) run(mux *chi.Mux) error {
 	const RTime = 10 * time.Second
 	const ITime = time.Minute
 
+	// Docs
+	docs.SwaggerInfo.Version = app.config.version
+	docs.SwaggerInfo.BasePath = "/v1"
+	docs.SwaggerInfo.Host = app.config.apiUrl
 	srv := &http.Server{
 		Addr:         app.config.addr,
 		Handler:      mux,

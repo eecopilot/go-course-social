@@ -10,11 +10,30 @@ import (
 
 const version = "1.0.0"
 
+//	@title			Swagger Social API
+//	@description	This is a sample server Social API.
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+//	@BasePath	/v1
+
+//	@securityDefinitions.apikey	ApiKeyAuth
+//	@in							header
+//	@name						Authorization
+//	@description				请在请求头中添加Authorization字段，值为Bearer + 空格 + token
+
 func main() {
 	cfg := config{
 		addr:    env.GetString("ADDR", ":8080"),
 		version: version,
 		env:     env.GetString("ENV", "development"),
+		apiUrl:  env.GetString("API_URL", ":8080"),
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres-db:5432"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 20),

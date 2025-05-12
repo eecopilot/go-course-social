@@ -19,6 +19,22 @@ type CreatePostPayload struct {
 	Tags    []string `json:"tags" validate:"max=5"`
 }
 
+// createPostHandler godoc
+//
+//	@Summary		创建帖子
+//	@Description	创建一个新的帖子
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			title	body		string		true	"帖子标题"
+//	@Param			content	body		string		true	"帖子内容"
+//	@Param			tags	body		[]string	false	"帖子标签"
+//	@Param			userID	body		int64		true	"用户ID"
+//	@Success		201		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts [post]
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
 	// var post store.Post // bad way
 	var payload CreatePostPayload
@@ -59,6 +75,19 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// getPostHandler godoc
+//
+//	@Summary		获取帖子
+//	@Description	获取帖子详情
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int	true	"帖子ID"
+//	@Success		200		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromContext(r.Context())
 
@@ -81,6 +110,20 @@ type UpdatePostPayload struct {
 	Content *string `json:"content" validate:"omitempty,max=1000"`
 }
 
+// updatePostHandler godoc
+//
+//	@Summary		更新帖子
+//	@Description	更新帖子
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int					true	"帖子ID"
+//	@Param			payload	body		UpdatePostPayload	true	"更新信息"
+//	@Success		200		{object}	store.Post
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [put]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromContext(r.Context())
 
@@ -149,6 +192,19 @@ func getPostFromContext(ctx context.Context) *store.Post {
 	return post
 }
 
+// deletePostHandler godoc
+//
+//	@Summary		删除帖子
+//	@Description	删除帖子
+//	@Tags			posts
+//	@Accept			json
+//	@Produce		json
+//	@Param			postID	path		int		true	"帖子ID"
+//	@Success		204		{string}	string	"删除成功"
+//	@Failure		400		{object}	error
+//	@Failure		500		{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/posts/{postID} [delete]
 func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
 	postId := chi.URLParam(r, "postId")
 

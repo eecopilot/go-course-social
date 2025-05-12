@@ -14,6 +14,20 @@ type userContextKey string
 
 const userCtxKey userContextKey = "user"
 
+// GetUserHandler	godoc
+//
+//	@Summary		获取用户信息
+//	@Description	通过用户ID获取用户信息
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		int	true	"用户ID"
+//	@Success		200	{object}	store.User
+//	@Failure		400	{object}	error
+//	@Failure		404	{object}	error
+//	@Failure		500	{object}	error
+//	@Security		ApiKeyAuth
+//	@Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 
@@ -27,6 +41,19 @@ type FollowUser struct {
 	UserID int64 `json:"user_id"`
 }
 
+// followUserHandler	godoc
+//
+//	@Summary		关注用户
+//	@Description	通过用户ID关注用户
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			userID	path		int		true	"用户ID"
+//	@Success		204		{string}	string	"关注成功"
+//	@Failure		400		{object}	error	"请求错误"
+//	@Failure		404		{object}	error	"用户不存在"
+//	@Security		ApiKeyAuth
+//	@Router			/users/{userID}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	followerUser := getUserFromContext(r) // 关注者
 
@@ -57,6 +84,19 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// unfollowUserHandler godoc
+//
+//	@Summary		取消关注用户
+//	@Description	通过用户ID取消关注用户
+//	@Tags			users
+//	@Accept			json
+//	@Produce		json
+//	@Param			userID	path		int		true	"用户ID"
+//	@Success		204		{string}	string	"取消关注成功"
+//	@Failure		400		{object}	error	"请求错误"
+//	@Failure		404		{object}	error	"用户不存在"
+//	@Security		ApiKeyAuth
+//	@Router			/users/{userID}/unfollow [put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	unfollowedUser := getUserFromContext(r)
 
