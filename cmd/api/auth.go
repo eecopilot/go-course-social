@@ -16,6 +16,10 @@ type RegisterUserPayload struct {
 	Email    string `json:"email" validate:"required,email,max=255"`
 	Password string `json:"password" validate:"required,min=6,max=72"`
 }
+type UserWithToken struct {
+	*store.User
+	Token string `json:"token"`
+}
 
 // registerUserHandler godoc
 //
@@ -24,7 +28,7 @@ type RegisterUserPayload struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			payload	body		RegisterUserPayload	true	"用户信息"
-//	@Success		201		{object}	store.User			"用户创建成功"
+//	@Success		201		{object}	UserWithToken		"用户创建成功"
 //	@Failure		400		{object}	error				"请求错误"
 //	@Failure		409		{object}	error				"用户已存在"
 //	@Router			/authentication/user [post]
@@ -59,6 +63,7 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	hash := sha256.Sum256([]byte(plainToken))
 	hashToken := hex.EncodeToString(hash[:])
 
+	// 创建用户并发送邀请
 	err := app.store.Users.CreateAndInvite(r.Context(), user, hashToken, app.config.mail.exp)
 	if err != nil {
 		switch err {
@@ -70,7 +75,13 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := app.jsonResponse(w, r, http.StatusCreated, user); err != nil {
+	userWithToken := &UserWithToken{
+		User:  user,
+		Token: plainToken,
+	}
+	// TODO:发送邮件
+
+	if err := app.jsonResponse(w, r, http.StatusCreated, userWithToken); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

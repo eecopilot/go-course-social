@@ -2,7 +2,9 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -15,6 +17,7 @@ type User struct {
 	Email     string   `json:"email"`
 	Password  Password `json:"-"`
 	CreatedAt string   `json:"created_at"`
+	IsActive  bool     `json:"is_active"`
 }
 
 var (
@@ -123,5 +126,89 @@ func (p *PostgresUsers) createUserInvitation(ctx context.Context, tx *sql.Tx, to
 		return err
 	}
 
+	return nil
+}
+
+func (p *PostgresUsers) Activate(ctx context.Context, token string) error {
+	return withTransaction(p.db, ctx, func(tx *sql.Tx) error {
+		// 1.find user by token
+		user, err := p.getUserByInvitationToken(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		// 2.update user to active
+		user.IsActive = true
+		if err := p.Update(ctx, tx, user); err != nil {
+			return err
+		}
+		// 3.delete the invitation
+		err = p.deleteUserInvitation(ctx, tx, user.ID)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (p *PostgresUsers) getUserByInvitationToken(ctx context.Context, tx *sql.Tx, token string) (*User, error) {
+	query := `
+		SELECT u.id, u.username, u.email, u.created_at, u.is_active
+		FROM users u
+		JOIN user_invitations ui ON u.id = ui.user_id
+		WHERE ui.token = $1
+	`
+	hash := sha256.Sum256([]byte(token))
+	hashToken := hex.EncodeToString(hash[:])
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
+
+	var user User
+	err := tx.QueryRowContext(ctx, query, hashToken).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.CreatedAt,
+		&user.IsActive,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &user, nil
+}
+
+func (p *PostgresUsers) Update(ctx context.Context, tx *sql.Tx, user *User) error {
+	query := `
+		UPDATE users
+		SET username = $1, email = $2, is_active = $3
+		WHERE id = $4
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, query, user.Username, user.Email, user.IsActive, user.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *PostgresUsers) deleteUserInvitation(ctx context.Context, tx *sql.Tx, userID int64) error {
+	query := `
+		DELETE FROM user_invitations
+		WHERE user_id = $1
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
+	_, err := tx.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
 	return nil
 }

@@ -116,6 +116,37 @@ func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// activateUserHandler godoc
+//
+//	@Summary		激活用户
+//	@Description	通过token激活用户
+//	@Tags			users
+//	@Produce		json
+//	@Param			token	path		string	true	"token"
+//	@Success		204		{string}	string	"激活成功"
+//	@Failure		400		{object}	error	"请求错误"
+//	@Failure		404		{object}	error	"用户不存在"
+//	@Router			/users/activate/{token} [put]
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+
+	err := app.store.Users.Activate(r.Context(), token)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := app.jsonResponse(w, r, http.StatusNoContent, nil); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+}
+
 // userContextMiddleware 从上下文中获取用户
 func (app *application) userContextMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
