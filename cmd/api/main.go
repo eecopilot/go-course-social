@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/eecopilot/go-course-social/internal/db"
 	"github.com/eecopilot/go-course-social/internal/env"
 	"github.com/eecopilot/go-course-social/internal/store"
@@ -33,6 +35,9 @@ func main() {
 		version: version,
 		env:     env.GetString("ENV", "development"),
 		apiUrl:  env.GetString("API_URL", ":8080"),
+		mail: mailConfig{
+			exp: time.Hour * 24 * 3, // 3 days
+		},
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres-db:5432"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 20),
