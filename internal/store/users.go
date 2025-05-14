@@ -53,7 +53,7 @@ func (p *PostgresUsers) Create(ctx context.Context, tx *sql.Tx, user *User) erro
 	err := tx.QueryRowContext(
 		ctx, query,
 		user.Username,
-		user.Password,
+		user.Password.Hash,
 		user.Email,
 	).Scan(&user.ID, &user.CreatedAt)
 

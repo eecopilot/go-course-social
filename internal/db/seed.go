@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -113,18 +114,23 @@ var comments = []string{
 	"Keep up the great work!",
 }
 
-func Seed(store store.Storage) error {
+func Seed(store store.Storage, db *sql.DB) error {
 	ctx := context.Background()
 
 	// 这里有问题，generate函数都是从0开始。只适应第一次运行，再次运行。user_id为从0开始会有问题，因为上一次已经执行过了。
 
 	users := generateUsers(20)
+	tx, _ := db.BeginTx(ctx, nil)
 
 	for _, user := range users {
-		if err := store.Users.Create(ctx, nil, user); err != nil {
+		if err := store.Users.Create(ctx, tx, user); err != nil {
+			_ = tx.Rollback()
 			log.Printf("failed to create user: %v", err)
+			return err
 		}
 	}
+
+	tx.Commit()
 
 	posts := generatePosts(50, users)
 	for _, post := range posts {
