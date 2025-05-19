@@ -5,6 +5,7 @@ import (
 
 	"github.com/eecopilot/go-course-social/internal/db"
 	"github.com/eecopilot/go-course-social/internal/env"
+	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
 	"go.uber.org/zap"
 )
@@ -31,12 +32,17 @@ const version = "1.0.0"
 
 func main() {
 	cfg := config{
-		addr:    env.GetString("ADDR", ":8080"),
-		version: version,
-		env:     env.GetString("ENV", "development"),
-		apiUrl:  env.GetString("API_URL", ":8080"),
+		addr:        env.GetString("ADDR", ":8080"),
+		version:     version,
+		env:         env.GetString("ENV", "development"),
+		apiUrl:      env.GetString("API_URL", ":8080"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
 		mail: mailConfig{
-			exp: time.Hour * 24 * 3, // 3 days
+			exp:       time.Hour * 24 * 3, // 3 days
+			fromEmail: env.GetString("FROM_EMAIL", "test@example.com"),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetString("SENDGRID_API_KEY", "SG.1234567890"),
+			},
 		},
 		db: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres-db:5432"),
@@ -59,10 +65,17 @@ func main() {
 	logger.Info("connected to db")
 	// store connection
 	store := store.NewStorage(db)
+
+	mailer := mailer.NewSendGridMailer(
+		cfg.mail.sendGrid.apiKey,
+		cfg.mail.fromEmail,
+	)
+
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
 
 	// 获取路由器

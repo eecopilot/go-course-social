@@ -5,9 +5,11 @@ import (
 
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/google/uuid"
 
+	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
 )
 
@@ -79,7 +81,28 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		User:  user,
 		Token: plainToken,
 	}
-	// TODO:发送邮件
+
+	isProdEnv := app.config.env == "production"
+	activationURL := fmt.Sprintf("%s/confim/%s", app.config.frontendURL, plainToken)
+	vars := struct {
+		Username      string
+		ActivationURL string
+	}{
+		Username:      user.Username,
+		ActivationURL: activationURL,
+	}
+
+	// 发送邮件
+	err = app.mailer.Send(mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv)
+	if err != nil {
+		app.logger.Errorw("send email failed", "error", err)
+		// roll back user creation
+		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
+			app.logger.Errorw("roll back user creation failed", "error", err)
+		}
+		app.internalServerError(w, r, err)
+		return
+	}
 
 	if err := app.jsonResponse(w, r, http.StatusCreated, userWithToken); err != nil {
 		app.internalServerError(w, r, err)

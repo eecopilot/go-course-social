@@ -74,6 +74,34 @@ func (p *PostgresUsers) Create(ctx context.Context, tx *sql.Tx, user *User) erro
 	return nil
 }
 
+func (p *PostgresUsers) Delete(ctx context.Context, userID int64) error {
+	return withTransaction(p.db, ctx, func(tx *sql.Tx) error {
+		// 1. delete the user
+		err := p.deleteUser(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		// 2. delete the user invitation
+		err = p.deleteUserInvitation(ctx, tx, userID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (p *PostgresUsers) deleteUser(ctx context.Context, tx *sql.Tx, userID int64) error {
+	query := `
+		DELETE FROM users
+		WHERE id = $1
+	`
+	_, err := tx.ExecContext(ctx, query, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *PostgresUsers) GetByID(ctx context.Context, userID int64) (*User, error) {
 	query := `
 		SELECT id, username, email, created_at
