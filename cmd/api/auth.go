@@ -18,6 +18,7 @@ type RegisterUserPayload struct {
 	Email    string `json:"email" validate:"required,email,max=255"`
 	Password string `json:"password" validate:"required,min=6,max=72"`
 }
+
 type UserWithToken struct {
 	*store.User
 	Token string `json:"token"`

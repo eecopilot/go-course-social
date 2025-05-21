@@ -23,6 +23,16 @@ type config struct {
 	apiUrl      string
 	mail        mailConfig
 	frontendURL string
+	auth        authConfig
+}
+
+type authConfig struct {
+	basicAuth basicConfig
+}
+
+type basicConfig struct {
+	username string
+	password string
 }
 
 type mailConfig struct {
@@ -74,7 +84,7 @@ func (app *application) mount() *chi.Mux {
 	docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 	// Group
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthCheckHandler)
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
 		// docs 文档
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
@@ -106,14 +116,12 @@ func (app *application) mount() *chi.Mux {
 			// feed
 			// Group 可以给这个group设置中间件
 			r.Group(func(r chi.Router) {
-				// r.Use(app.userContextMiddleware)
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})
 
 		// Public routes
 		r.Route("/authentication", func(r chi.Router) {
-			// r.Post("/login", app.loginHandler)
 			r.Post("/user", app.registerUserHandler)
 		})
 	})

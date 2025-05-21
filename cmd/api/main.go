@@ -50,6 +50,12 @@ func main() {
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 20),
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "20s"),
 		},
+		auth: authConfig{
+			basicAuth: basicConfig{
+				username: env.GetString("BASIC_AUTH_USERNAME", "admin"),
+				password: env.GetString("BASIC_AUTH_PASSWORD", "admin"),
+			},
+		},
 	}
 	// logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
