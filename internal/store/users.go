@@ -106,7 +106,7 @@ func (p *PostgresUsers) GetByID(ctx context.Context, userID int64) (*User, error
 	query := `
 		SELECT id, username, email, created_at
 		FROM users
-		WHERE id = $1
+		WHERE id = $1 AND is_active = true
 	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
 	defer cancel()
@@ -239,4 +239,27 @@ func (p *PostgresUsers) deleteUserInvitation(ctx context.Context, tx *sql.Tx, us
 		return err
 	}
 	return nil
+}
+
+// GetByEmail 根据邮箱获取用户
+func (p *PostgresUsers) GetByEmail(ctx context.Context, email string) (*User, error) {
+	query := `
+		SELECT id, username, email, created_at
+		FROM users
+		WHERE email = $1 AND is_active = true
+	`
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
+	defer cancel()
+
+	var user User
+	err := p.db.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrNotFound
+		default:
+			return nil, err
+		}
+	}
+	return &user, nil
 }

@@ -5,11 +5,12 @@ import (
 
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"errors"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
-	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
 )
 
@@ -83,29 +84,88 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		Token: plainToken,
 	}
 
-	isProdEnv := app.config.env == "production"
-	activationURL := fmt.Sprintf("%s/confim/%s", app.config.frontendURL, plainToken)
-	vars := struct {
-		Username      string
-		ActivationURL string
-	}{
-		Username:      user.Username,
-		ActivationURL: activationURL,
-	}
+	// isProdEnv := app.config.env == "production"
+	// activationURL := fmt.Sprintf("%s/confim/%s", app.config.frontendURL, plainToken)
+	// vars := struct {
+	// 	Username      string
+	// 	ActivationURL string
+	// }{
+	// 	Username:      user.Username,
+	// 	ActivationURL: activationURL,
+	// }
 
 	// 发送邮件
-	err = app.mailer.Send(mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv)
+	// err = app.mailer.Send(mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv)
+	// if err != nil {
+	// 	app.logger.Errorw("send email failed", "error", err)
+	// 	// roll back user creation
+	// 	if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
+	// 		app.logger.Errorw("roll back user creation failed", "error", err)
+	// 	}
+	// 	app.internalServerError(w, r, err)
+	// 	return
+	// }
+
+	if err := app.jsonResponse(w, r, http.StatusCreated, userWithToken); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
+
+type CreateUserTokenPayload struct {
+	Email    string `json:"email" validate:"required,email,max=255"`
+	Password string `json:"password" validate:"required,min=3,max=72"`
+}
+
+// createTokenHandler godoc
+//
+//	@Summary		创建令牌
+//	@Description	创建一个新令牌
+//	@Accept			json
+//	@Produce		json
+//	@Param			payload	body		CreateUserTokenPayload	true	"令牌信息"
+//	@Success		200		{string}	string					"令牌创建成功"
+//	@Failure		400		{object}	error					"请求错误"
+//	@Failure		401		{object}	error					"认证失败"
+//	@Failure		500		{object}	error					"服务器错误"
+//	@Router			/authentication/token [post]
+func (app *application) createTokenHandler(w http.ResponseWriter, r *http.Request) {
+	// 1. parse the payload credentials
+	var payload CreateUserTokenPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	// 2. fetch the user
+	user, err := app.store.Users.GetByEmail(r.Context(), payload.Email)
 	if err != nil {
-		app.logger.Errorw("send email failed", "error", err)
-		// roll back user creation
-		if err := app.store.Users.Delete(r.Context(), user.ID); err != nil {
-			app.logger.Errorw("roll back user creation failed", "error", err)
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.unauthorizedResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
 		}
+		return
+	}
+	// 3. generate a token -> add claims
+	claims := jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(app.config.auth.token.exp).Unix(),
+		"iat": time.Now().Unix(),
+		"nbf": time.Now().Unix(),
+		"aud": app.config.auth.token.aud,
+		"iss": app.config.auth.token.iss,
+	}
+	token, err := app.authenticator.GenerateToken(claims)
+	if err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
-
-	if err := app.jsonResponse(w, r, http.StatusCreated, userWithToken); err != nil {
+	// 4. return the token
+	if err := app.jsonResponse(w, r, http.StatusOK, token); err != nil {
 		app.internalServerError(w, r, err)
 	}
 }

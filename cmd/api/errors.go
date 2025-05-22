@@ -27,11 +27,13 @@ func (app *application) conflictResponse(w http.ResponseWriter, r *http.Request,
 	writeJSONError(w, http.StatusConflict, err.Error())
 }
 
+// 如果用户没有提供正确的认证信息，则返回401状态码
 func (app *application) unauthorizedResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Errorw("unauthorized", "method", r.Method, "path", r.URL.Path, "error", err)
 	writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 }
 
+// 如果用户没有提供正确的认证信息，则返回401状态码
 func (app *application) unauthorizedBasicErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	app.logger.Errorw("unauthorized basic error", "method", r.Method, "path", r.URL.Path, "error", err)
 	w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)

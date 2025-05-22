@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	"github.com/eecopilot/go-course-social/internal/auth"
 	"github.com/eecopilot/go-course-social/internal/db"
 	"github.com/eecopilot/go-course-social/internal/env"
 	"github.com/eecopilot/go-course-social/internal/mailer"
@@ -55,6 +56,12 @@ func main() {
 				username: env.GetString("BASIC_AUTH_USERNAME", "admin"),
 				password: env.GetString("BASIC_AUTH_PASSWORD", "admin"),
 			},
+			token: tokenConfig{
+				secretKey: env.GetString("JWT_SECRET_KEY", "secret"),
+				aud:       env.GetString("JWT_AUD", "social"),
+				iss:       env.GetString("JWT_ISS", "social"),
+				exp:       time.Hour * 24 * 3, // 3 days
+			},
 		},
 	}
 	// logger
@@ -77,11 +84,18 @@ func main() {
 		cfg.mail.fromEmail,
 	)
 
+	jwtAuthenticator := auth.NewJWTAuthenticator(
+		cfg.auth.token.secretKey,
+		cfg.auth.token.aud,
+		cfg.auth.token.iss,
+	)
+
 	app := &application{
-		config: cfg,
-		store:  store,
-		logger: logger,
-		mailer: mailer,
+		config:        cfg,
+		store:         store,
+		logger:        logger,
+		mailer:        mailer,
+		authenticator: jwtAuthenticator,
 	}
 
 	// 获取路由器

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/eecopilot/go-course-social/docs" // This is required to generate swagger docs
+	"github.com/eecopilot/go-course-social/internal/auth"
 	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -28,6 +29,14 @@ type config struct {
 
 type authConfig struct {
 	basicAuth basicConfig
+	token     tokenConfig
+}
+
+type tokenConfig struct {
+	secretKey string
+	aud       string
+	iss       string
+	exp       time.Duration
 }
 
 type basicConfig struct {
@@ -53,10 +62,11 @@ type dbConfig struct {
 }
 
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 func (app *application) mount() *chi.Mux {
@@ -123,6 +133,7 @@ func (app *application) mount() *chi.Mux {
 		// Public routes
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.registerUserHandler)
+			r.Post("/token", app.createTokenHandler)
 		})
 	})
 

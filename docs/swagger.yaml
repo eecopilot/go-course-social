@@ -1,5 +1,18 @@
 basePath: /v1
 definitions:
+  main.CreateUserTokenPayload:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      password:
+        maxLength: 72
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    type: object
   main.RegisterUserPayload:
     properties:
       email:
@@ -138,6 +151,35 @@ info:
   termsOfService: http://swagger.io/terms/
   title: Swagger Social API
 paths:
+  /authentication/token:
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新令牌
+      parameters:
+      - description: 令牌信息
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.CreateUserTokenPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 令牌创建成功
+          schema:
+            type: string
+        "400":
+          description: 请求错误
+          schema: {}
+        "401":
+          description: 认证失败
+          schema: {}
+        "500":
+          description: 服务器错误
+          schema: {}
+      summary: 创建令牌
   /authentication/user:
     post:
       consumes:
