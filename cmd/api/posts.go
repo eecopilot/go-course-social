@@ -53,16 +53,17 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 	if payload.Tags == nil {
 		payload.Tags = []string{}
 	}
+	ctx := r.Context()
+	// get user id from context
+	user := getUserFromContext(r)
 
 	// create a new post
 	post := &store.Post{
-		UserID:  1,
+		UserID:  user.ID,
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
 	}
-
-	ctx := r.Context()
 
 	if err := app.store.Posts.Create(ctx, post); err != nil {
 		app.internalServerError(w, r, err)

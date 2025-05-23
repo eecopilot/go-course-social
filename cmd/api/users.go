@@ -37,10 +37,6 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type FollowUser struct {
-	UserID int64 `json:"user_id"`
-}
-
 // followUserHandler	godoc
 //
 //	@Summary		关注用户
@@ -56,20 +52,18 @@ type FollowUser struct {
 //	@Router			/users/{userID}/follow [put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	followerUser := getUserFromContext(r) // 关注者
-
-	// TODO: 需要验证被关注者是否存在
-	var payload FollowUser // 被关注者
-	if err := readJSON(w, r, &payload); err != nil {
+	followedID, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	// 需要解决自己关注自己的问题
-	if followerUser.ID == payload.UserID {
+	// 不能关注自己
+	if followedID == followerUser.ID {
 		app.conflictResponse(w, r, errors.New("cannot follow yourself"))
 		return
 	}
 
-	if err := app.store.Followers.Follow(r.Context(), followerUser.ID, payload.UserID); err != nil {
+	if err := app.store.Followers.Follow(r.Context(), followerUser.ID, followedID); err != nil {
 		switch {
 		case errors.Is(err, store.ErrDuplicate):
 			app.conflictResponse(w, r, err)
@@ -98,15 +92,13 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 //	@Security		ApiKeyAuth
 //	@Router			/users/{userID}/unfollow [put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
-	unfollowedUser := getUserFromContext(r)
-
-	// TODO: 需要验证被关注者是否存在
-	var payload FollowUser // 被关注者
-	if err := readJSON(w, r, &payload); err != nil {
+	followedUser := getUserFromContext(r)
+	unfollowedID, err := strconv.ParseInt(chi.URLParam(r, "userID"), 10, 64)
+	if err != nil {
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	if err := app.store.Followers.Unfollow(r.Context(), unfollowedUser.ID, payload.UserID); err != nil {
+	if err := app.store.Followers.Unfollow(r.Context(), followedUser.ID, unfollowedID); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
