@@ -1,11 +1,56 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
+
+func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			app.unauthorizedResponse(w, r, fmt.Errorf("no auth header provided"))
+			return
+		}
+		// parse the token
+		parts := strings.Split(authHeader, " ") // ["Bearer", "token"]
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.unauthorizedResponse(w, r, fmt.Errorf("invalid auth header"))
+			return
+		}
+		// validate the token
+		token := parts[1]
+		jwtToken, err := app.authenticator.ValidateToken(token)
+		if err != nil {
+			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
+			return
+		}
+		// get the claims
+		claims, _ := jwtToken.Claims.(jwt.MapClaims)
+		// get the user id
+		userID, err := strconv.ParseInt(claims["sub"].(string), 10, 64)
+		if err != nil {
+			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
+			return
+		}
+		// get the user
+		user, err := app.store.Posts.GetByID(r.Context(), strconv.FormatInt(userID, 10))
+		if err != nil {
+			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
+			return
+		}
+		// set the user in the request context
+		ctx := context.WithValue(r.Context(), "user", user)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
 
 // BasicAuthExplanation 解释HTTP中基本认证的工作原理
 //
@@ -47,6 +92,7 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 			decoded, err := base64.StdEncoding.DecodeString(parts[1])
 			if err != nil {
 				app.unauthorizedBasicErrorResponse(w, r, fmt.Errorf("invalid auth"))
+				return
 			}
 			//4. check the credentials
 			creds := strings.Split(string(decoded), ":")

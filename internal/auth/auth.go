@@ -6,5 +6,5 @@ import (
 
 type Authenticator interface {
 	GenerateToken(claims jwt.Claims) (string, error)
-	ValidateToken(token string) (*jwt.Claims, error)
+	ValidateToken(token string) (*jwt.Token, error)
 }

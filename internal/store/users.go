@@ -113,7 +113,14 @@ func (p *PostgresUsers) GetByID(ctx context.Context, userID int64) (*User, error
 
 	var user User
 	// Scan 是回填查询结果到query列出的变量中
-	err := p.db.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	err := p.db.
+		QueryRowContext(ctx, query, userID).
+		Scan(
+			&user.ID,
+			&user.Username,
+			&user.Email,
+			&user.CreatedAt,
+		)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
