@@ -33,7 +33,7 @@ func (j *JWTAuthenticator) GenerateToken(claims jwt.Claims) (string, error) {
 
 // ValidateToken validates the token and returns the token if it is valid
 func (j *JWTAuthenticator) ValidateToken(token string) (*jwt.Token, error) {
-	return jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	return jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}

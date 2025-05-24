@@ -34,19 +34,19 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 		// get the claims
 		claims, _ := jwtToken.Claims.(jwt.MapClaims)
 		// get the user id
-		userID, err := strconv.ParseInt(claims["sub"].(string), 10, 64)
+		userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
 		if err != nil {
 			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
 			return
 		}
 		// get the user
-		user, err := app.store.Posts.GetByID(r.Context(), strconv.FormatInt(userID, 10))
+		user, err := app.store.Users.GetByID(r.Context(), userID)
 		if err != nil {
 			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
 			return
 		}
 		// set the user in the request context
-		ctx := context.WithValue(r.Context(), "user", user)
+		ctx := context.WithValue(r.Context(), CtxUserKey, user)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

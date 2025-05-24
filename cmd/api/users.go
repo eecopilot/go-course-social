@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strconv"
@@ -12,7 +11,7 @@ import (
 
 type userContextKey string
 
-const userCtxKey userContextKey = "user"
+const CtxUserKey userContextKey = "user"
 
 // GetUserHandler	godoc
 //
@@ -140,33 +139,33 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 }
 
 // userContextMiddleware 从上下文中获取用户
-func (app *application) userContextMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
-		if err != nil {
-			app.badRequestResponse(w, r, err)
-			return
-		}
-		ctx := r.Context()
+// func (app *application) userContextMiddleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		userID, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
+// 		if err != nil {
+// 			app.badRequestResponse(w, r, err)
+// 			return
+// 		}
+// 		ctx := r.Context()
 
-		user, err := app.store.Users.GetByID(ctx, userID)
-		if err != nil {
-			switch {
-			case errors.Is(err, store.ErrNotFound):
-				app.notFoundResponse(w, r)
-			default:
-				app.internalServerError(w, r, err)
-			}
-			return
-		}
-		ctx = context.WithValue(ctx, userCtxKey, user)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
+// 		user, err := app.store.Users.GetByID(ctx, userID)
+// 		if err != nil {
+// 			switch {
+// 			case errors.Is(err, store.ErrNotFound):
+// 				app.notFoundResponse(w, r)
+// 			default:
+// 				app.internalServerError(w, r, err)
+// 			}
+// 			return
+// 		}
+// 		ctx = context.WithValue(ctx, userCtxKey, user)
+// 		next.ServeHTTP(w, r.WithContext(ctx))
+// 	})
+// }
 
 // getUserFromContext 从上下文中获取用户
 func getUserFromContext(r *http.Request) *store.User {
-	user, ok := r.Context().Value(userCtxKey).(*store.User)
+	user, ok := r.Context().Value(CtxUserKey).(*store.User)
 	if !ok {
 		return nil
 	}

@@ -26,8 +26,7 @@ import (
 //	@Security		ApiKeyAuth
 //	@Router			/users/feed [get]
 func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Request) {
-	// user := getUserFromContext(r)
-	// log.Println(user)
+	user := getUserFromContext(r)
 	fq := store.PaginatedFeedQuery{
 		Limit:  2,
 		Offset: 0,
@@ -47,9 +46,7 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, err)
 		return
 	}
-	ctx := r.Context()
-	// TODO: 从上下文中获取用户
-	feeds, err := app.store.Posts.GetUserFeed(ctx, 1, fq)
+	feeds, err := app.store.Posts.GetUserFeed(r.Context(), user.ID, fq)
 
 	if err != nil {
 		app.internalServerError(w, r, err)
