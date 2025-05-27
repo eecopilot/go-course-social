@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/eecopilot/go-course-social/internal/store"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -113,4 +114,37 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func (app *application) checkPostOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		user := getUserFromContext(r)
+		post := getPostFromContext(ctx)
+		if post.UserID == user.ID {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// role precedence check
+		allowed, err := app.checkRolePrecedence(ctx, user, requiredRole)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+		if !allowed {
+			app.forbiddenResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, roleName string) (bool, error) {
+	role, err := app.store.Roles.GetByName(ctx, roleName)
+	if err != nil {
+		return false, err
+	}
+	// 如果用户角色等级大于等于要求的角色等级，则返回true
+	return user.Role.Level >= role.Level, nil
 }

@@ -18,6 +18,8 @@ type User struct {
 	Password  Password `json:"-"`
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
+	RoleID    int64    `json:"role_id"`
+	Role      Role     `json:"role"`
 }
 
 var (
@@ -47,8 +49,8 @@ type PostgresUsers struct {
 
 func (p *PostgresUsers) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
-		INSERT INTO users (username,password, email)
-		VALUES ($1, $2, $3)
+		INSERT INTO users (username,password, email, role_id)
+		VALUES ($1, $2, $3, (SELECT id FROM roles WHERE name = $4))
 		RETURNING id, created_at
 	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
@@ -58,6 +60,7 @@ func (p *PostgresUsers) Create(ctx context.Context, tx *sql.Tx, user *User) erro
 		user.Username,
 		user.Password.Hash,
 		user.Email,
+		user.Role.Name,
 	).Scan(&user.ID, &user.CreatedAt)
 
 	if err != nil {
@@ -104,9 +107,10 @@ func (p *PostgresUsers) deleteUser(ctx context.Context, tx *sql.Tx, userID int64
 
 func (p *PostgresUsers) GetByID(ctx context.Context, userID int64) (*User, error) {
 	query := `
-		SELECT id, username, email, created_at
-		FROM users
-		WHERE id = $1 AND is_active = true
+		SELECT u.id, u.username, u.email, u.created_at, r.id, r.name, r.level, r.description
+		FROM users u
+		JOIN roles r ON u.role_id = r.id
+		WHERE u.id = $1 AND u.is_active = true
 	`
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeout)
 	defer cancel()
@@ -120,6 +124,10 @@ func (p *PostgresUsers) GetByID(ctx context.Context, userID int64) (*User, error
 			&user.Username,
 			&user.Email,
 			&user.CreatedAt,
+			&user.Role.ID,
+			&user.Role.Name,
+			&user.Role.Level,
+			&user.Role.Description,
 		)
 	if err != nil {
 		switch {

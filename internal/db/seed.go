@@ -160,6 +160,9 @@ func generateUsers(n int) []*store.User {
 				Text: &plainText,
 				Hash: nil,
 			},
+			Role: store.Role{
+				Name: "user",
+			},
 		}
 	}
 	return users
