@@ -28,8 +28,22 @@ const CtxUserKey userContextKey = "user"
 //	@Security		ApiKeyAuth
 //	@Router			/users/{id} [get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromContext(r)
-
+	// user := getUserFromContext(r)
+	userID, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
+	if err != nil || userID < 1 {
+		app.badRequestResponse(w, r, errors.New("invalid user ID"))
+		return
+	}
+	user, err := app.getUser(r.Context(), userID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
 	if err := app.jsonResponse(w, r, http.StatusOK, user); err != nil {
 		app.internalServerError(w, r, err)
 		return

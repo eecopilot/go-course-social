@@ -9,12 +9,22 @@ import (
 	"github.com/eecopilot/go-course-social/internal/auth"
 	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
+	"github.com/eecopilot/go-course-social/internal/store/cache"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
+
+type application struct {
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
+	cacheStorage  cache.Storage
+}
 
 type config struct {
 	addr        string
@@ -25,6 +35,14 @@ type config struct {
 	mail        mailConfig
 	frontendURL string
 	auth        authConfig
+	redisCfg    redisConfig
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 type authConfig struct {
@@ -59,14 +77,6 @@ type dbConfig struct {
 	maxOpenConns int
 	maxIdleConns int
 	maxIdleTime  string
-}
-
-type application struct {
-	config        config
-	store         store.Storage
-	logger        *zap.SugaredLogger
-	mailer        mailer.Client
-	authenticator auth.Authenticator
 }
 
 func (app *application) mount() *chi.Mux {

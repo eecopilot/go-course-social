@@ -91,7 +91,6 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 //	@Router			/posts/{postID} [get]
 func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromContext(r.Context())
-
 	// 获取评论
 	comments, err := app.store.Comments.GetByPostID(r.Context(), post.ID)
 	if err != nil {

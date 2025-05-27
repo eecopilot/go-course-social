@@ -226,7 +226,50 @@ const docTemplate = `{
                     }
                 }
             },
-            "put": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "删除帖子",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "posts"
+                ],
+                "summary": "删除帖子",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "帖子ID",
+                        "name": "postID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "删除成功",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {}
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {}
+                    }
+                }
+            },
+            "patch": {
                 "security": [
                     {
                         "ApiKeyAuth": []
@@ -266,49 +309,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/store.Post"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {}
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {}
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "删除帖子",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "posts"
-                ],
-                "summary": "删除帖子",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "帖子ID",
-                        "name": "postID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "删除成功",
-                        "schema": {
-                            "type": "string"
                         }
                     },
                     "400": {
@@ -656,6 +656,12 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
+                "role": {
+                    "$ref": "#/definitions/store.Role"
+                },
+                "role_id": {
+                    "type": "integer"
+                },
                 "token": {
                     "type": "string"
                 },
@@ -772,6 +778,23 @@ const docTemplate = `{
                 }
             }
         },
+        "store.Role": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "store.User": {
             "type": "object",
             "properties": {
@@ -786,6 +809,12 @@ const docTemplate = `{
                 },
                 "is_active": {
                     "type": "boolean"
+                },
+                "role": {
+                    "$ref": "#/definitions/store.Role"
+                },
+                "role_id": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"

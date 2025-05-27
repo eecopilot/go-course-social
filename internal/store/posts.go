@@ -144,6 +144,7 @@ func (p *PostgresPosts) Delete(ctx context.Context, postId string) error {
 	return nil
 }
 
+// 获取用户Feed
 func (p *PostgresPosts) GetUserFeed(ctx context.Context, userID int64, fq PaginatedFeedQuery) ([]PostWithMetadata, error) {
 	// 处理时间参数
 	since := fq.Since

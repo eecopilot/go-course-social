@@ -55,3 +55,9 @@ go run cmd/migrate/seed/main.go
 ```
 docker compose up --build
 ```
+
+## redis
+
+```
+docker run -d --rm --name social-redis -p 6379:6379 redis:6.2-alpine redis-server --loglevel warning
+```

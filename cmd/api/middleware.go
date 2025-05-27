@@ -35,13 +35,19 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 		// get the claims
 		claims, _ := jwtToken.Claims.(jwt.MapClaims)
 		// get the user id
+		// 从JWT令牌的sub字段获取用户ID
 		userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
 		if err != nil {
 			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
 			return
 		}
 		// get the user
-		user, err := app.store.Users.GetByID(r.Context(), userID)
+		// user, err := app.store.Users.GetByID(r.Context(), userID)
+		// if err != nil {
+		// 	app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
+		// 	return
+		// }
+		user, err := app.getUser(r.Context(), userID)
 		if err != nil {
 			app.unauthorizedResponse(w, r, fmt.Errorf("invalid token"))
 			return
@@ -51,6 +57,27 @@ func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (app *application) getUser(ctx context.Context, userID int64) (*store.User, error) {
+	// check the cache
+	user, err := app.cacheStorage.Users.Get(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	// user not found in cache
+	if user == nil {
+		user, err := app.store.Users.GetByID(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		// set the user in the cache
+		if err := app.cacheStorage.Users.Set(ctx, user); err != nil {
+			return nil, err
+		}
+		return user, nil
+	}
+	return user, nil
 }
 
 // BasicAuthExplanation 解释HTTP中基本认证的工作原理

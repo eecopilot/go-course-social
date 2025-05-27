@@ -8,6 +8,8 @@ import (
 	"github.com/eecopilot/go-course-social/internal/env"
 	"github.com/eecopilot/go-course-social/internal/mailer"
 	"github.com/eecopilot/go-course-social/internal/store"
+	"github.com/eecopilot/go-course-social/internal/store/cache"
+	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
 
@@ -63,6 +65,12 @@ func main() {
 				exp:       time.Hour * 24 * 3, // 3 days
 			},
 		},
+		redisCfg: redisConfig{
+			addr:    env.GetString("REDIS_ADDR", "127.0.0.1:6379"),
+			pw:      env.GetString("REDIS_PW", ""),
+			db:      env.GetInt("REDIS_DB", 0),
+			enabled: env.GetBool("REDIS_ENABLED", true),
+		},
 	}
 	// logger
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -76,8 +84,19 @@ func main() {
 
 	defer db.Close()
 	logger.Info("connected to db")
+
+	// redis connection
+	var rdb *redis.Client
+	if cfg.redisCfg.enabled {
+		rdb = cache.NewRedisClient(cfg.redisCfg.addr, cfg.redisCfg.pw, cfg.redisCfg.db)
+		defer rdb.Close()
+		logger.Info("connected to redis")
+	}
+
 	// store connection
 	store := store.NewStorage(db)
+	// cache connection
+	cacheStorage := cache.NewRedisStorage(rdb)
 
 	mailer := mailer.NewSendGridMailer(
 		cfg.mail.sendGrid.apiKey,
@@ -93,6 +112,7 @@ func main() {
 	app := &application{
 		config:        cfg,
 		store:         store,
+		cacheStorage:  cacheStorage,
 		logger:        logger,
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
