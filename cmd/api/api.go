@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/eecopilot/go-course-social/docs" // This is required to generate swagger docs
@@ -104,7 +108,9 @@ func (app *application) mount() *chi.Mux {
 	docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 	// Group
 	r.Route("/v1", func(r chi.Router) {
-		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+		// r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+
+		r.Get("/health", app.healthCheckHandler)
 
 		// docs 文档
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
@@ -169,6 +175,58 @@ func (app *application) run(mux *chi.Mux) error {
 		ReadTimeout:  RTime, // max time to read request from the client
 		IdleTimeout:  ITime, // max time for connections using TCP Keep-Alive
 	}
+
+	// 创建一个用于接收shutdown错误的channel
+	// 这个channel用于在goroutine和主线程之间传递shutdown的结果
+	shutdown := make(chan error)
+
+	// 启动一个goroutine来监听系统信号，实现优雅关闭
+	go func() {
+		// 创建一个接收系统信号的channel，缓冲区大小为1
+		// 缓冲区大小为1是为了确保信号不会被阻塞
+		quit := make(chan os.Signal, 1)
+
+		// 注册要监听的信号：SIGINT (Ctrl+C) 和 SIGTERM (终止信号)
+		// 当收到这些信号时，会发送到quit channel
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+		// 阻塞等待接收信号，一旦收到信号就继续执行
+		s := <-quit
+
+		// 创建一个带超时的context，给服务器5秒时间来完成正在处理的请求
+		// 这是优雅关闭的关键：不会立即强制关闭，而是等待现有连接处理完成
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel() // 确保context资源被释放
+
+		// 记录服务器正在关闭的日志
+		app.logger.Infow("Server is shutting down", "signal", s.String())
+
+		// 调用服务器的Shutdown方法进行优雅关闭，并将结果发送到shutdown channel
+		// Shutdown会停止接受新的连接，并等待现有连接完成处理（在超时时间内）
+		shutdown <- srv.Shutdown(ctx)
+	}()
+
+	// 记录服务器启动日志
 	app.logger.Infow("Server has started", "addr", app.config.addr, "env", app.config.env)
-	return srv.ListenAndServe()
+
+	// 启动HTTP服务器，这个调用会阻塞直到服务器关闭
+	err := srv.ListenAndServe()
+
+	// 检查服务器关闭的原因
+	// 如果错误不是nil且不是正常的服务器关闭错误，则返回错误
+	// http.ErrServerClosed 是调用Shutdown()方法时的正常返回值
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+
+	// 等待从shutdown channel接收优雅关闭的结果
+	// 这里会阻塞直到上面的goroutine完成srv.Shutdown()调用
+	err = <-shutdown
+	if err != nil {
+		return err
+	}
+
+	// 记录服务器已停止的日志
+	app.logger.Infow("Server has stopped", "addr", app.config.addr, "env", app.config.env)
+	return nil
 }
